@@ -4,6 +4,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
@@ -18,15 +19,27 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Calendar;
+import java.util.Date;
+
 /**
  * Main class for our UI design lab.
  */
-public final class MainActivity extends AppCompatActivity {
+public final class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener{
     /** Default logging tag for messages from the main activity. */
     private static final String TAG = "Lab12:Main";
 
     /** Request queue for our API requests. */
     private static RequestQueue requestQueue;
+
+    /**
+     * Rover whose camera we are viewing.
+     */
+    private String selectedRover;
+    /**
+     * Camera selected to view.
+     */
+    private String selectedCamera;
 
     /**
      * Run when this activity comes to the foreground.
@@ -42,17 +55,15 @@ public final class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        //get the spinner from the xml.
-        Spinner dropdown = findViewById(R.id.cameraType);
-//create a list of items for the spinner.
-        String[] items = new String[]{"Front Hazard Avoidance Camera", "Rear Hazard Avoidance Camera", "Mast Camera",
-                "Chemistry and Camera Complex", "Mars Hand Lens Imager", "Mars Descent Imager",
-                "Navigation Camera", "Panoramic Camera", "Mini-TES"};
-//create an adapter to describe how the items are displayed, adapters are used in several places in android.
-//There are multiple variations of this, but this is the basic variant.
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, items);
-//set the spinners adapter to the previously created one.
-        dropdown.setAdapter(adapter);
+        Spinner dropdownRover = findViewById(R.id.rover);
+
+        String[] itemsRovers = new String[] {"Curiosity", "Opportunity", "Spirit"};
+        ArrayAdapter<String> adapterRover = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, itemsRovers);
+        dropdownRover.setAdapter(adapterRover);
+
+        dropdownRover.setOnItemSelectedListener(this);
+
+
 
         final Button getImage = findViewById(R.id.get_image);
         getImage.setOnClickListener(new View.OnClickListener() {
@@ -63,7 +74,72 @@ public final class MainActivity extends AppCompatActivity {
             }
         });
     }
+    public void onItemSelected(AdapterView<?> parent, View view,
+                               int pos, long id) {
+        // An item was selected. You can retrieve the selected item using
+        // parent.getItemAtPosition(pos)
+        Log.d(TAG, "Item selected");
+        String selectedItem = (String) parent.getItemAtPosition(pos);
+        if (selectedItem.equals("Curiosity") ||
+                selectedItem.equals("Opportunity") ||
+                selectedItem.equals("Spirit")) {
+            selectedRover = selectedItem.toLowerCase();
 
+
+            if (selectedItem.equals("Curiosity")) {
+                Spinner dropdownCamera = findViewById(R.id.cameraType);
+//create a list of items for the spinner.
+                String[] itemsCamera = new String[]{"Front Hazard Avoidance Camera", "Rear Hazard Avoidance Camera", "Mast Camera",
+                        "Chemistry and Camera Complex", "Mars Hand Lens Imager", "Mars Descent Imager",
+                        "Navigation Camera"};
+//create an adapter to describe how the items are displayed, adapters are used in several places in android.
+//There are multiple variations of this, but this is the basic variant.
+                ArrayAdapter<String> adapterCamera = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, itemsCamera);
+
+//set the spinners adapter to the previously created one.
+                dropdownCamera.setAdapter(adapterCamera);
+                dropdownCamera.setOnItemSelectedListener(this);
+                dropdownCamera.setVisibility(View.VISIBLE);
+            } else if (selectedItem.equals("Opportunity") || selectedItem.equals("Spirit")) {
+                Spinner dropdownCamera = findViewById(R.id.cameraType);
+//create a list of items for the spinner.
+                String[] itemsCamera = new String[]{"Front Hazard Avoidance Camera", "Rear Hazard Avoidance Camera",
+                        "Navigation Camera", "Panoramic Camera", "Mini-TES"};
+//create an adapter to describe how the items are displayed, adapters are used in several places in android.
+//There are multiple variations of this, but this is the basic variant.
+                ArrayAdapter<String> adapterCamera = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, itemsCamera);
+
+//set the spinners adapter to the previously created one.
+                dropdownCamera.setAdapter(adapterCamera);
+                dropdownCamera.setOnItemSelectedListener(this);
+                dropdownCamera.setVisibility(View.VISIBLE);
+            }
+        } else {
+            if (selectedItem.equals("Front Hazard Avoidance Camera")) {
+                selectedCamera = "fhaz";
+            } else if (selectedItem.equals("Rear Hazard Avoidance Camera")) {
+                selectedCamera = "rhaz";
+            } else if (selectedItem.equals("Mast Camera")) {
+                selectedCamera = "mast";
+            } else if (selectedItem.equals("Chemistry and Camera Complex")) {
+                selectedCamera = "chemcam";
+            } else if (selectedItem.equals("Mars Hand Lens Imager")) {
+                selectedCamera = "mahli";
+            } else if (selectedItem.equals("Mars Descent Imager")) {
+                selectedCamera = "mardi";
+            } else if (selectedItem.equals("Navigation Camera")) {
+                selectedCamera = "navcam";
+            } else if (selectedItem.equals("Panoramic Camera")) {
+                selectedCamera = "pancam";
+            } else if (selectedItem.equals("Mini-TES")) {
+                selectedCamera = "minites";
+            }
+        }
+    }
+    public void onNothingSelected(AdapterView<?> parent) {
+        // Another interface callback
+        Log.d(TAG, "Nothing Selected");
+    }
     /**
      * Run when this activity is no longer visible.
      */
@@ -77,9 +153,12 @@ public final class MainActivity extends AppCompatActivity {
      */
     void startAPICall() {
         try {
-            String roverName = "";
-            String date = "";
-            String camera = "";
+            int month = Calendar.MONTH;
+            int day = Calendar.DAY_OF_MONTH;
+
+            String roverName = selectedRover;
+            String date = "2015-6-3";
+            String camera = selectedCamera;
 
             JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
                     Request.Method.GET,
@@ -94,6 +173,7 @@ public final class MainActivity extends AppCompatActivity {
                         @Override
                         public void onResponse(final JSONObject response) {
                             try {
+
                                 Log.d(TAG, response.toString(2));
                             } catch (JSONException ignored) { }
                         }
