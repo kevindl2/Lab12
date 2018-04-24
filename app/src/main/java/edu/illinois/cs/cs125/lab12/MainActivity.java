@@ -51,6 +51,15 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
     private String selectedCamera;
 
     /**
+     * Last date at which rover has picture.
+     */
+    private String maxDate;
+    /**
+     * Last sol at which rover has picture.
+     */
+    private String maxSol;
+
+    /**
      * Run when this activity comes to the foreground.
      *
      * @param savedInstanceState unused
@@ -79,6 +88,7 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
             @Override
             public void onClick(final View v) {
                 Log.d(TAG, "Start API button clicked");
+                getMaxDate();
                 startAPICall();
             }
         });
@@ -156,9 +166,73 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
     protected void onPause() {
         super.onPause();
     }
+    void getMaxDate() {
+        try {
 
+            String roverName;
+            if (selectedRover.equals("curiosity")) {
+                roverName = "Curiosity";
+            } else if (selectedRover.equals("opportunity")) {
+                roverName = "Opportunity";
+            } else {
+                roverName = "Spirit";
+            }
+            JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
+                    Request.Method.GET,
+                    "https://api.nasa.gov/mars-photos/api/v1/manifests/"
+                            + roverName
+                            + "?api_key="
+                            + BuildConfig.API_KEY,
+                    null,
+                    new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(final JSONObject response) {
+                            try {
+                                //Log.d(TAG, response.toString(2));
+                                JSONObject root = response.getJSONObject("photo_manifest");
+                                maxDate  = root.getString("max_date");
+                                maxSol = root.getString("max_sol");
+                            } catch (JSONException ignored) { }
+                        }
+                    }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(final VolleyError error) {
+                    Log.e(TAG, error.toString());
+                }
+            });
+
+            //Second request finds all available cameras on latest date.
+            JsonObjectRequest jsonObjectRequest2 = new JsonObjectRequest(
+                    Request.Method.GET,
+                    "https://api.nasa.gov/mars-photos/api/v1/manifests/"
+                            + roverName
+                            + "?api_key="
+                            + BuildConfig.API_KEY,
+                    null,
+                    new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(final JSONObject response) {
+                            try {
+                                Log.d(TAG, response.toString(2));
+
+
+                            } catch (JSONException ignored) { }
+                        }
+                    }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(final VolleyError error) {
+                    Log.e(TAG, error.toString());
+                }
+            });
+            requestQueue.add(jsonObjectRequest);
+            requestQueue.add(jsonObjectRequest2);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     /**
-     * Make a call to the weather API.
+     * Make a call to NASA API to get image.
      */
     void startAPICall() {
         try {
@@ -174,7 +248,7 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                     "https://api.nasa.gov/mars-photos/api/v1/rovers/"
                             + roverName
                             + "/photos?earth_date="
-                            + date + "&camera="
+                            + maxDate + "&camera="
                             + camera + "&api_key="
                             + BuildConfig.API_KEY,
                     null,
@@ -183,12 +257,12 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                         public void onResponse(final JSONObject response) {
                             try {
 
-                                Log.d(TAG, response.toString(2));
+                                //Log.d(TAG, response.toString(2));
                                 // find image_src and remove all backslashes from url.
                                 JSONArray root = response.getJSONArray("photos");
                                 if (root.length() == 0) {
                                     Log.d(TAG, "No Photos Available");
-                                    Toast.makeText(MainActivity.this, "No Photos Available. Choose Different Rover or Camera.", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(MainActivity.this, "No Photos Available. Choose Different Rover or Camera.", Toast.LENGTH_LONG).show();
                                 }
                                 JSONObject photo = root.getJSONObject(0);
                                 String url = photo.getString("img_src");
