@@ -1,5 +1,8 @@
 package edu.illinois.cs.cs125.lab12;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -7,7 +10,10 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -16,9 +22,12 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.InputStream;
+import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -175,6 +184,18 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                             try {
 
                                 Log.d(TAG, response.toString(2));
+                                // find image_src and remove all backslashes from url.
+                                JSONArray root = response.getJSONArray("photos");
+                                if (root.length() == 0) {
+                                    Log.d(TAG, "No Photos Available");
+                                    Toast.makeText(MainActivity.this, "No Photos Available. Choose Different Rover or Camera.", Toast.LENGTH_SHORT).show();
+                                }
+                                JSONObject photo = root.getJSONObject(0);
+                                String url = photo.getString("img_src");
+                                Log.d(TAG, url);
+                                ImageView iv = findViewById(R.id.imageView);
+                                new DownLoadImageTask(iv).execute(url);
+                                iv.setVisibility(View.VISIBLE);
                             } catch (JSONException ignored) { }
                         }
                     }, new Response.ErrorListener() {
@@ -186,6 +207,52 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
             requestQueue.add(jsonObjectRequest);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+     /*
+        AsyncTask enables proper and easy use of the UI thread. This class
+        allows to perform background operations and publish results on the UI
+        thread without having to manipulate threads and/or handlers.
+     */
+
+    /*
+        final AsyncTask<Params, Progress, Result>
+            execute(Params... params)
+                Executes the task with the specified parameters.
+     */
+    private static class DownLoadImageTask extends AsyncTask<String,Void,Bitmap> {
+        private ImageView imageView;
+
+        private DownLoadImageTask(ImageView imageView){
+            this.imageView = imageView;
+        }
+
+        /*
+            doInBackground(Params... params)
+                Override this method to perform a computation on a background thread.
+         */
+        protected Bitmap doInBackground(String...urls){
+            String urlOfImage = urls[0];
+            Bitmap logo = null;
+            try{
+                InputStream is = new URL(urlOfImage).openStream();
+                /*
+                    decodeStream(InputStream is)
+                        Decode an input stream into a bitmap.
+                 */
+                logo = BitmapFactory.decodeStream(is);
+            }catch(Exception e){ // Catch the download exception
+                e.printStackTrace();
+            }
+            return logo;
+        }
+
+        /*
+            onPostExecute(Result result)
+                Runs on the UI thread after doInBackground(Params...).
+         */
+        protected void onPostExecute(Bitmap result){
+            imageView.setImageBitmap(result);
         }
     }
 }
