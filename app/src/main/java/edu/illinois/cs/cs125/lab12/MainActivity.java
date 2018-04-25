@@ -88,7 +88,7 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
             @Override
             public void onClick(final View v) {
                 Log.d(TAG, "Start API button clicked");
-                getMaxDate();
+
                 startAPICall();
             }
         });
@@ -103,7 +103,7 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                 selectedItem.equals("Opportunity") ||
                 selectedItem.equals("Spirit")) {
             selectedRover = selectedItem.toLowerCase();
-
+            getMaxDate();
 
             if (selectedItem.equals("Curiosity")) {
                 Spinner dropdownCamera = findViewById(R.id.cameraType);
@@ -191,7 +191,17 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                                 //Log.d(TAG, response.toString(2));
                                 JSONObject root = response.getJSONObject("photo_manifest");
                                 maxDate  = root.getString("max_date");
+                                Log.d(TAG, maxDate);
                                 maxSol = root.getString("max_sol");
+                                Log.d(TAG, maxSol);
+                                JSONArray photos = root.getJSONArray("photos");
+                                JSONObject lastElement = photos.getJSONObject(photos.length() - 1);
+                                Log.d(TAG, lastElement.toString(2));
+                                JSONArray listCameras = lastElement.getJSONArray("cameras");
+                                String[] spinnerCameras = new String[listCameras.length()];
+                                //for (int i = 0; i < listCameras.length(); i++) {
+                                    //spinnerCameras[i] = J
+                                //}
                             } catch (JSONException ignored) { }
                         }
                     }, new Response.ErrorListener() {
@@ -201,31 +211,9 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                 }
             });
 
-            //Second request finds all available cameras on latest date.
-            JsonObjectRequest jsonObjectRequest2 = new JsonObjectRequest(
-                    Request.Method.GET,
-                    "https://api.nasa.gov/mars-photos/api/v1/manifests/"
-                            + roverName
-                            + "?api_key="
-                            + BuildConfig.API_KEY,
-                    null,
-                    new Response.Listener<JSONObject>() {
-                        @Override
-                        public void onResponse(final JSONObject response) {
-                            try {
-                                Log.d(TAG, response.toString(2));
 
-
-                            } catch (JSONException ignored) { }
-                        }
-                    }, new Response.ErrorListener() {
-                @Override
-                public void onErrorResponse(final VolleyError error) {
-                    Log.e(TAG, error.toString());
-                }
-            });
             requestQueue.add(jsonObjectRequest);
-            requestQueue.add(jsonObjectRequest2);
+
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -258,7 +246,7 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                             try {
 
                                 //Log.d(TAG, response.toString(2));
-                                // find image_src and remove all backslashes from url.
+
                                 JSONArray root = response.getJSONArray("photos");
                                 if (root.length() == 0) {
                                     Log.d(TAG, "No Photos Available");
