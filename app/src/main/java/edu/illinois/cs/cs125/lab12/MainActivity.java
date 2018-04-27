@@ -12,7 +12,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Spinner;
-import android.widget.TextView;
+
 import android.widget.Toast;
 
 import com.android.volley.Request;
@@ -28,8 +28,9 @@ import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Calendar;
-import java.util.Date;
+
+
+import java.util.Arrays;
 
 /**
  * Main class for our UI design lab.
@@ -51,14 +52,27 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
     private String selectedCamera;
 
     /**
-     * Last date at which rover has picture.
+     * Last date at which Curiosity rover has picture.
      */
-    private String maxDate;
-    /**
-     * Last sol at which rover has picture.
-     */
-    private String maxSol;
+    private String maxDateCuriosity;
 
+    /**
+     * Last date at which Opportunity rover has picture.
+     */
+    private String maxDateOpportunity;
+
+
+
+
+
+    /**
+     * List of available cameras on Curiosity rover.
+     */
+    private String[] camerasCuriosity;
+    /**
+     * List of available cameras on Opportunity rover.
+     */
+    private String[] camerasOpportunity;
     /**
      * Run when this activity comes to the foreground.
      *
@@ -72,14 +86,17 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
         requestQueue = Volley.newRequestQueue(this);
 
         setContentView(R.layout.activity_main);
+        getMaxDateCuriosity();
+        getMaxDateOpportunity();
 
         Spinner dropdownRover = findViewById(R.id.rover);
 
-        String[] itemsRovers = new String[] {"Curiosity", "Opportunity", "Spirit"};
+        String[] itemsRovers = new String[] {"", "Curiosity", "Opportunity"};
         ArrayAdapter<String> adapterRover = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, itemsRovers);
         dropdownRover.setAdapter(adapterRover);
 
         dropdownRover.setOnItemSelectedListener(this);
+
 
 
 
@@ -98,13 +115,26 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
         // An item was selected. You can retrieve the selected item using
         // parent.getItemAtPosition(pos)
         Log.d(TAG, "Item selected");
-        String selectedItem = (String) parent.getItemAtPosition(pos);
-        if (selectedItem.equals("Curiosity") ||
-                selectedItem.equals("Opportunity") ||
-                selectedItem.equals("Spirit")) {
-            selectedRover = selectedItem.toLowerCase();
-            getMaxDate();
 
+        String selectedItem = (String) parent.getItemAtPosition(pos);
+        if (selectedItem.equals("")) {
+            return;
+        }
+        if (selectedItem.equals("Curiosity") ||
+                selectedItem.equals("Opportunity")) {
+            selectedRover = selectedItem.toLowerCase();
+            Spinner dropdownCamera = findViewById(R.id.cameraType);
+            ArrayAdapter<String> adapterCamera;
+            if (selectedItem.equals("Curiosity")) {
+                adapterCamera = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, camerasCuriosity);
+            } else {
+                adapterCamera = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, camerasOpportunity);
+            }
+            dropdownCamera.setAdapter(adapterCamera);
+            dropdownCamera.setOnItemSelectedListener(this);
+            dropdownCamera.setVisibility(View.VISIBLE);
+
+            /*
             if (selectedItem.equals("Curiosity")) {
                 Spinner dropdownCamera = findViewById(R.id.cameraType);
 //create a list of items for the spinner.
@@ -133,6 +163,7 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                 dropdownCamera.setOnItemSelectedListener(this);
                 dropdownCamera.setVisibility(View.VISIBLE);
             }
+        */
         } else {
             if (selectedItem.equals("Front Hazard Avoidance Camera")) {
                 selectedCamera = "fhaz";
@@ -166,21 +197,19 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
     protected void onPause() {
         super.onPause();
     }
-    void getMaxDate() {
+
+    /**
+     *
+     */
+    void getMaxDateCuriosity() {
         try {
 
-            String roverName;
-            if (selectedRover.equals("curiosity")) {
-                roverName = "Curiosity";
-            } else if (selectedRover.equals("opportunity")) {
-                roverName = "Opportunity";
-            } else {
-                roverName = "Spirit";
-            }
+
+
             JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
                     Request.Method.GET,
                     "https://api.nasa.gov/mars-photos/api/v1/manifests/"
-                            + roverName
+                            + "Curiosity"
                             + "?api_key="
                             + BuildConfig.API_KEY,
                     null,
@@ -190,18 +219,107 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                             try {
                                 //Log.d(TAG, response.toString(2));
                                 JSONObject root = response.getJSONObject("photo_manifest");
-                                maxDate  = root.getString("max_date");
-                                Log.d(TAG, maxDate);
-                                maxSol = root.getString("max_sol");
-                                Log.d(TAG, maxSol);
+                                maxDateCuriosity  = root.getString("max_date");
+                                Log.d(TAG, maxDateCuriosity);
+
                                 JSONArray photos = root.getJSONArray("photos");
                                 JSONObject lastElement = photos.getJSONObject(photos.length() - 1);
                                 Log.d(TAG, lastElement.toString(2));
                                 JSONArray listCameras = lastElement.getJSONArray("cameras");
-                                String[] spinnerCameras = new String[listCameras.length()];
-                                //for (int i = 0; i < listCameras.length(); i++) {
-                                    //spinnerCameras[i] = J
-                                //}
+                                camerasCuriosity = new String[listCameras.length()];
+                                for (int i = 0; i < listCameras.length(); i++) {
+                                    if (listCameras.getString(i).equals("FHAZ")){
+                                        camerasCuriosity[i] = "Front Hazard Avoidance Camera";
+                                    } else if (listCameras.getString(i).equals("RHAZ")) {
+                                        camerasCuriosity[i] = "Rear Hazard Avoidance Camera";
+                                    } else if (listCameras.getString(i).equals("MAST")) {
+                                        camerasCuriosity[i] = "Mast Camera";
+                                    } else if (listCameras.getString(i).equals("CHEMCAM")) {
+                                        camerasCuriosity[i] = "Chemistry and Camera Complex";
+                                    } else if (listCameras.getString(i).equals("MAHLI")) {
+                                        camerasCuriosity[i] = "Mars Hand Lens Imager";
+                                    } else if (listCameras.getString(i).equals("MARDI")) {
+                                        camerasCuriosity[i] = "Mars Descent Imager";
+                                    } else if (listCameras.getString(i).equals("NAVCAM")) {
+                                        camerasCuriosity[i] = "Navigation Camera";
+                                    } else if (listCameras.getString(i).equals("PANCAM")) {
+                                        camerasCuriosity[i] = "Panoramic Camera";
+                                    } else if (listCameras.getString(i).equals("MINITES")) {
+                                        camerasCuriosity[i] = "Mini-TES";
+                                    }
+
+                                }
+                                Log.d(TAG, "Curiosity's Cameras: " + Arrays.toString(camerasCuriosity));
+
+
+                            } catch (JSONException ignored) { }
+                        }
+                    }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(final VolleyError error) {
+                    Log.e(TAG, error.toString());
+                }
+            });
+
+
+            requestQueue.add(jsonObjectRequest);
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    void getMaxDateOpportunity() {
+        try {
+
+
+
+            JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
+                    Request.Method.GET,
+                    "https://api.nasa.gov/mars-photos/api/v1/manifests/"
+                            + "Opportunity"
+                            + "?api_key="
+                            + BuildConfig.API_KEY,
+                    null,
+                    new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(final JSONObject response) {
+                            try {
+                                //Log.d(TAG, response.toString(2));
+                                JSONObject root = response.getJSONObject("photo_manifest");
+                                maxDateOpportunity  = root.getString("max_date");
+                                Log.d(TAG, maxDateOpportunity);
+
+                                JSONArray photos = root.getJSONArray("photos");
+                                JSONObject lastElement = photos.getJSONObject(photos.length() - 1);
+                                Log.d(TAG, lastElement.toString(2));
+                                JSONArray listCameras = lastElement.getJSONArray("cameras");
+                                camerasOpportunity = new String[listCameras.length()];
+                                for (int i = 0; i < listCameras.length(); i++) {
+                                    if (listCameras.getString(i).equals("FHAZ")){
+                                        camerasOpportunity[i] = "Front Hazard Avoidance Camera";
+                                    } else if (listCameras.getString(i).equals("RHAZ")) {
+                                        camerasOpportunity[i] = "Rear Hazard Avoidance Camera";
+                                    } else if (listCameras.getString(i).equals("MAST")) {
+                                        camerasOpportunity[i] = "Mast Camera";
+                                    } else if (listCameras.getString(i).equals("CHEMCAM")) {
+                                        camerasOpportunity[i] = "Chemistry and Camera Complex";
+                                    } else if (listCameras.getString(i).equals("MAHLI")) {
+                                        camerasOpportunity[i] = "Mars Hand Lens Imager";
+                                    } else if (listCameras.getString(i).equals("MARDI")) {
+                                        camerasOpportunity[i] = "Mars Descent Imager";
+                                    } else if (listCameras.getString(i).equals("NAVCAM")) {
+                                        camerasOpportunity[i] = "Navigation Camera";
+                                    } else if (listCameras.getString(i).equals("PANCAM")) {
+                                        camerasOpportunity[i] = "Panoramic Camera";
+                                    } else if (listCameras.getString(i).equals("MINITES")) {
+                                        camerasOpportunity[i] = "Mini-TES";
+                                    }
+
+                                }
+                                Log.d(TAG, "Opportunity's Cameras: " + Arrays.toString(camerasOpportunity));
+
+
                             } catch (JSONException ignored) { }
                         }
                     }, new Response.ErrorListener() {
@@ -224,12 +342,17 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
      */
     void startAPICall() {
         try {
-            int month = Calendar.MONTH;
-            int day = Calendar.DAY_OF_MONTH;
+
 
             String roverName = selectedRover;
-            String date = "2015-6-3";
+
             String camera = selectedCamera;
+            String maxDate;
+            if (selectedRover.equals("curiosity")) {
+                maxDate = maxDateCuriosity;
+            } else {
+                maxDate = maxDateOpportunity;
+            }
 
             JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
                     Request.Method.GET,
