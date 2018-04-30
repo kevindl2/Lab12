@@ -21,11 +21,18 @@
         android:layout_height="wrap_content"
         android:visibility="invisible" />
 
+    <Spinner
+        android:id="@+id/photoNumber"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="invisible" />
+
     <Button
         android:id="@+id/get_image"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Update" />
+        android:text="Update"
+        android:visibility="invisible" />
 
     <ImageView
         android:id="@+id/imageView"

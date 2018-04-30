@@ -61,18 +61,27 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
      */
     private String maxDateOpportunity;
 
-
-
-
-
     /**
      * List of available cameras on Curiosity rover.
      */
+
     private String[] camerasCuriosity;
+
     /**
      * List of available cameras on Opportunity rover.
      */
     private String[] camerasOpportunity;
+
+    /**
+     * Index of chosen photo in list.
+     */
+    private int photoIndex;
+
+    /**
+     * List of
+     */
+    private String[] photoIndices;
+
     /**
      * Run when this activity comes to the foreground.
      *
@@ -167,22 +176,35 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
         } else {
             if (selectedItem.equals("Front Hazard Avoidance Camera")) {
                 selectedCamera = "fhaz";
+                setPhotoIndexRange();
             } else if (selectedItem.equals("Rear Hazard Avoidance Camera")) {
                 selectedCamera = "rhaz";
+                setPhotoIndexRange();
             } else if (selectedItem.equals("Mast Camera")) {
                 selectedCamera = "mast";
+                setPhotoIndexRange();
             } else if (selectedItem.equals("Chemistry and Camera Complex")) {
                 selectedCamera = "chemcam";
+                setPhotoIndexRange();
             } else if (selectedItem.equals("Mars Hand Lens Imager")) {
                 selectedCamera = "mahli";
+                setPhotoIndexRange();
             } else if (selectedItem.equals("Mars Descent Imager")) {
                 selectedCamera = "mardi";
+                setPhotoIndexRange();
             } else if (selectedItem.equals("Navigation Camera")) {
                 selectedCamera = "navcam";
+                setPhotoIndexRange();
             } else if (selectedItem.equals("Panoramic Camera")) {
                 selectedCamera = "pancam";
+                setPhotoIndexRange();
             } else if (selectedItem.equals("Mini-TES")) {
                 selectedCamera = "minites";
+                setPhotoIndexRange();
+            } else {
+                photoIndex = Integer.parseInt(selectedItem);
+                Button update = findViewById(R.id.get_image);
+                update.setVisibility(View.VISIBLE);
             }
         }
     }
@@ -375,7 +397,8 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                                     Log.d(TAG, "No Photos Available");
                                     Toast.makeText(MainActivity.this, "No Photos Available. Choose Different Rover or Camera.", Toast.LENGTH_LONG).show();
                                 }
-                                JSONObject photo = root.getJSONObject(0);
+
+                                JSONObject photo = root.getJSONObject(photoIndex - 1);
                                 String url = photo.getString("img_src");
                                 Log.d(TAG, url);
                                 ImageView iv = findViewById(R.id.imageView);
@@ -389,6 +412,65 @@ public final class MainActivity extends AppCompatActivity implements AdapterView
                             Log.e(TAG, error.toString());
                         }
                     });
+            requestQueue.add(jsonObjectRequest);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    void setPhotoIndexRange() {
+        try {
+
+
+            String roverName = selectedRover;
+
+            String camera = selectedCamera;
+            String maxDate;
+            if (selectedRover.equals("curiosity")) {
+                maxDate = maxDateCuriosity;
+            } else {
+                maxDate = maxDateOpportunity;
+            }
+
+            JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
+                    Request.Method.GET,
+                    "https://api.nasa.gov/mars-photos/api/v1/rovers/"
+                            + roverName
+                            + "/photos?earth_date="
+                            + maxDate + "&camera="
+                            + camera + "&api_key="
+                            + BuildConfig.API_KEY,
+                    null,
+                    new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(final JSONObject response) {
+                            try {
+
+                                //Log.d(TAG, response.toString(2));
+
+                                JSONArray root = response.getJSONArray("photos");
+                                if (root.length() == 0) {
+                                    Log.d(TAG, "No Photos Available");
+                                    Toast.makeText(MainActivity.this, "No Photos Available. Choose Different Rover or Camera.", Toast.LENGTH_LONG).show();
+                                }
+                                Spinner choosePhoto = findViewById(R.id.photoNumber);
+                                photoIndices = new String[root.length()];
+                                for (int i = 0; i < root.length(); i++) {
+                                    Integer index = (Integer) (i + 1);
+                                    photoIndices[i] = index.toString();
+                                }
+                                ArrayAdapter<String> adapter = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_spinner_dropdown_item, photoIndices);
+                                choosePhoto.setAdapter(adapter);
+                                choosePhoto.setOnItemSelectedListener(MainActivity.this);
+                                choosePhoto.setVisibility(View.VISIBLE);
+
+                            } catch (JSONException ignored) { }
+                        }
+                    }, new Response.ErrorListener() {
+                @Override
+                public void onErrorResponse(final VolleyError error) {
+                    Log.e(TAG, error.toString());
+                }
+            });
             requestQueue.add(jsonObjectRequest);
         } catch (Exception e) {
             e.printStackTrace();
